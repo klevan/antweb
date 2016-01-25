@@ -1,0 +1,34 @@
+---
+title: "AntWeb"
+author: "KE LeVan"
+date: "January 13, 2016"
+output: html_document
+---
+
+# Exploring patterns of ant occurrence data in AntWeb
+Now we have some data from AntWeb. I want to make a cool interface to visualize the data on this page using D3. To do that effectively, my .csv file is going to have to become a .geojson file.
+
+### Setting up libraries, paths and useful functions
+```{r Libraries,warning=FALSE}
+myPath <- "~/GitHub/antweb"
+myPathToData <- paste(myPath,"data",sep="/")
+
+library(geojsonio,warn.conflicts = FALSE,quietly = TRUE)
+```
+
+### Getting the data
+```{r Data}
+antData <- read.csv(paste(myPathToData,"antData.csv",sep="/"),header = TRUE,stringsAsFactors = FALSE)
+colnames(antData)[colnames(antData)=="minimumElevationInMeters"] <- "elevation"
+antData <- antData[colnames(antData)!="url" & colnames(antData)!="catalogNumber" & colnames(antData)!="typeStatus" 
+                   & colnames(antData)!="stateProvince" & colnames(antData)!="dateIdentified" 
+                   & colnames(antData)!="specificEpithet" & colnames(antData)!="geojson.type"]
+antData <- antData[is.na(antData$decimal_latitude)==FALSE & is.na(antData$decimal_longitude)==FALSE,]
+
+```
+
+### Converting the csv
+```{r csv file conversion}
+geo <- geojson_json(antData[1:2000,],lat = "decimal_latitude",lon = "decimal_longitude")
+geojson_write(input = geo,file = paste(myPathToData,"ants.geojson",sep="/"))
+```

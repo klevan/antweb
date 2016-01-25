@@ -1,0 +1,86 @@
+---
+title: "AntWeb"
+author: "KE LeVan"
+date: "January 13, 2016"
+output: html_document
+---
+
+# Exploring patterns of ant occurrence data in AntWeb
+Ants are a diverse group with representation in most parts of the globe. I'm interested in using the AntWeb.org api to explore ant populations. 
+
+### Setting up libraries, paths and useful functions
+```{r Libraries,warning=FALSE,echo=FALSE}
+myPath <- "REPLACE with YOUR path to the repo"
+myPathToData <- paste(myPath,"data",sep="/")
+
+library(XML)
+library(AntWeb)
+
+multipleCombine <- function(input, ply = llply){
+  require(plyr,warn.conflicts = FALSE)
+  require(dplyr,warn.conflicts = FALSE)
+  ply(input, function(x){
+    t <- read.table(x, header=TRUE, sep=",",stringsAsFactors = FALSE) # read the csv
+    t1 <- rbind(t) # rbind it to a temporary variable
+    return(t1) # return the full variable
+  }
+  )
+}
+```
+
+## Getting all the names of ant species
+As a shortcut, I'm using AntBase as my definitive list of species. At some later date, it might be nice to check their list against ITIS.gov ('Integrated Taxonomic Information Service') - but this is good enough to get started.
+```{r Compiling a complete list of named ant species}
+# Scraping AntBase for a complete list global of Ant species
+antBase <- "http://osuc.biosci.ohio-state.edu/hymenoptera/tsa.list_valid_taxa?query=Formicidae+Species"
+allAnts <- unique.data.frame(xmlToDataFrame(getNodeSet(xmlParse(antBase,encoding = "UTF-8"),"//Species"),
+                                            stringsAsFactors = FALSE))
+colnames(allAnts) <- "scientificName"
+```
+According to AntBase, there are `r length(allAnts$scientificName)` valid ant species globally. 
+
+## Querying the AntWeb Database for distributions of ants
+```{r Getting distributions for those species}
+# Querying AntWeb by scientific name
+dBase <- data.frame()
+  for (i in 1:dim(allAnts)[1]){
+    tmp <- try(dBase <- aw_data(scientific_name = allAnts$scientificName[i])$data)
+    if(is.null(tmp)==FALSE){
+      dBase$scientific_name <- paste(dBase$genus,dBase$specificEpithet,sep=" ")
+      write.csv(dBase,paste(myPathToData,paste(allAnts$scientificName[i],"csv",sep="."),sep="/"),
+                row.names=FALSE)
+    }
+    if(class(tmp)=="try-error"){
+      doOverTaxa <- c(doOverTaxa,i)
+    }
+    dBase <- data.frame()
+  }
+
+# If you don't finish in one go, this is a good section of code to pick up where you left off
+
+#lastspp <- substr(fileList[length(fileList)],nchar(myPathToData)+2,nchar(fileList[length(fileList)])-4)
+#for (i in (match(lastspp,allAnts$scientificName)+1):dim(allAnts)[1]){
+#      tmp <- try(dBase <- aw_data(scientific_name = allAnts$scientificName[i])$data)
+#      if(is.null(tmp)==FALSE){
+#        dBase$scientific_name <- paste(dBase$genus,dBase$specificEpithet,sep=" ")
+#        write.csv(dBase,paste(myPathToData,paste(allAnts$scientificName[i],"csv",sep="."),sep="/"),row.names=FALSE)
+#      }
+#      if(class(tmp)=="try-error"){
+#        doOverTaxa <- c(doOverTaxa,i)
+#      }
+#    dBase <- data.frame()
+#  }
+```
+The nice thing about write csv files after every quiery is that time-outs won't completely scrap your progress.
+
+```{r All Ant Data}
+mySuffix <- '.csv'
+fileList <- list.files(myPathToData, full.names=TRUE) 
+fileList <- fileList[grep(mySuffix,fileList)]
+antData <- multipleCombine(fileList, ply = ldply)
+
+# This is the list of species that exist that we didn't pull from AntWeb the first time around
+leftOverTaxa <- allAnts$scientificName[(allAnts$scientificName%in%sort(unique(antData$scientific_name)))==FALSE]
+```
+
+There are some `r length(leftOverTaxa)` that Ant Base says exist, but we about which we don't have data from Ant Web. I've written the AntBase species list and the compiled data from AntWeb (some `r length(antData$scientific_name)` species) to csv files in the data folder. 
