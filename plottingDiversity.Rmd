@@ -1,0 +1,69 @@
+---
+title: "AntWeb"
+author: "KE LeVan"
+date: "January 24, 2016"
+output: html_document
+---
+
+# Exploring patterns of ant occurrence data in AntWeb
+In `R`, it is easy to make some simple plots to examine the data we harvested from Ant Web.
+```{r libraries and paths}
+myPath <- "~/GitHub/antweb"
+myPathToData <- paste(myPath,"data",sep="/")
+antData <- read.csv(paste(myPathToData,"antData.csv",sep="/"),header = TRUE,stringsAsFactors = FALSE)
+
+library(dplyr,warn.conflicts = FALSE,quietly = TRUE)
+library(maps)
+```
+
+## Geographical analysis of distributions
+```{r Mapping the ants}
+# Mapping the distribution of AntWeb Data
+map(database = "world")
+points(antData$decimal_longitude,antData$decimal_latitude,pch=21,
+       bg="turquoise")
+
+# Which countries contribute the most records?
+antData %>% 
+  select(scientific_name,country) %>% 
+  filter(country!="") -> ctylist
+unique.data.frame(ctylist) %>% 
+  count(country) -> ctylist
+ctylist <- ctylist[order(ctylist$n),]
+
+pie(ctylist$n,col = rainbow(length(ctylist$country)),labels = ctylist$country)
+title(main = "Representation of countries within AntWeb")
+```
+
+```{r Patterns of diversity}
+# Relationship between latitude and diversity
+# Setting up the dataset
+antData <- antData[is.na(antData$decimal_latitude)==FALSE,]
+pal <- seq(from=min(antData$decimal_latitude),
+           to=max(antData$decimal_latitude),
+           by=1) 
+x <- vector()
+
+# Determining abundance at each latitude bin
+for (i in pal){
+  antData %>% 
+    filter(decimal_latitude>=i,decimal_latitude<i+1)-> a
+  a <- data.frame(latitude=i,
+                  numSpecies=length(unique(a$scientific_name)))
+  x <- rbind(x,a)
+}
+x$latitude <- abs(x$latitude)
+
+# Classic latitude vs species richness relationship
+plot(x$latitude,x$numSpecies,
+     xlab="|Distance from the equator in Degrees Latitude|",
+     ylab="Number of Ant Species",pch=21,bg="indianred",
+     cex=1.5,cex.lab=1.5,cex.axis=2)
+
+# Adding a regression line
+mod <- glm(x$numSpecies~x$latitude,family = poisson)
+x$fit <- as.numeric(mod$fitted.values)
+lines(x$latitude,x$fit,lwd=4)
+```
+
+This regression explains is a statistically significant relationship (z = `r round(summary.glm(mod)$coefficients[2,3],2)`, p = `r signif(summary.glm(mod)$coefficients[2,4],2)`)

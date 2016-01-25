@@ -50,6 +50,10 @@ lat <- seq(-89.5,89.5,1) # Possible latitude
 size <- length(lon)*length(lat) # size of the df
 grid <- data.frame(lat=rep(lat,length(lon)),
                    lon=sort(rep(lon,length(lat))),
+                   numRecords=rep(NA,size),
+                   sppRichness=rep(NA,size),
+                   genRichness=rep(NA,size),
+                   subfamRichness=rep(NA,size),
                    row.names = 1:size)
 
 # Filling the grid with ant data
@@ -59,6 +63,7 @@ for (i in 1:size){
            decimal_latitude<(grid$lat[i]+0.5),
            decimal_longitude>(grid$lon[i]-0.5),
            decimal_longitude<(grid$lon[i]+0.5)) -> ants
+  if (dim(ants)[1]>0){
   grid$numRecords[i] <- dim(ants)[1]
   ants <- unique.data.frame(ants[colnames(ants)=="subfamily"|
                                    colnames(ants)=="genus"|
@@ -70,6 +75,46 @@ for (i in 1:size){
   ants <- unique.data.frame(ants[colnames(ants)=="subfamily"])
   grid$subfamRichness[i] <- dim(ants)[1]
   print((i/size)*100)
+  }
 }
+rm(ants)
 
+# Now that I have a grid, I can scale the occurence/diversity
+# raw numbers to make an attractive scalar for my character 
+grid$numRecords <- (grid$numRecords/max(grid$numRecords,na.rm = TRUE))*5
+grid$sppRichness <- (grid$sppRichness/max(grid$sppRichness,na.rm = TRUE))*5
+grid$genRichness <- (grid$genRichness/max(grid$genRichness,na.rm = TRUE))*5
+grid$subfamRichness <- (grid$subfamRichness/max(grid$subfamRichness,na.rm = TRUE))*5
+```
+
+Now that I have summary stats for each grid location, I can create .geojson files for grids at each of my resolutions of interest.
+
+```{r making smaller geojson files}
+# Number of occurrences
+geo <- geojson_json(grid[is.na(grid$numRecords)==FALSE,
+                         colnames(grid)=="lat" |
+                         colnames(grid)=="lon" |
+                         colnames(grid)=="numRecords"],lat = "lat",lon = "lon")
+geojson_write(input = geo,file = paste(myPathToData,"numRecords.geojson",sep="/"))
+
+# Species Richness
+geo <- geojson_json(grid[is.na(grid$sppRichness)==FALSE,
+                         colnames(grid)=="lat" |
+                         colnames(grid)=="lon" |
+                         colnames(grid)=="sppRichness"],lat = "lat",lon = "lon")
+geojson_write(input = geo,file = paste(myPathToData,"speciesRichness.geojson",sep="/"))
+
+# Genus Richness
+geo <- geojson_json(grid[is.na(grid$genRichness)==FALSE,
+                         colnames(grid)=="lat" |
+                         colnames(grid)=="lon" |
+                         colnames(grid)=="genRichness"],lat = "lat",lon = "lon")
+geojson_write(input = geo,file = paste(myPathToData,"genusRichness.geojson",sep="/"))
+
+# Subfamily Richness
+geo <- geojson_json(grid[is.na(grid$subfamRichness)==FALSE,
+                         colnames(grid)=="lat" |
+                         colnames(grid)=="lon" |
+                         colnames(grid)=="subfamRichness"],lat = "lat",lon = "lon")
+geojson_write(input = geo,file = paste(myPathToData,"subfamilyRichness.geojson",sep="/"))
 ```
