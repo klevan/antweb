@@ -30,5 +30,5 @@ antData <- antData[is.na(antData$decimal_latitude)==FALSE & is.na(antData$decima
 ### Converting the csv
 ```{r csv file conversion}
 geo <- geojson_json(antData[1:2000,],lat = "decimal_latitude",lon = "decimal_longitude")
-geojson_write(input = geo,file = paste(myPathToData,"ants.geojson",sep="/"))
+geojson_write(input = geo,file = paste(myPathToData,"small_ants.geojson",sep="/"))
 ```
