@@ -13,6 +13,7 @@ Now we have some data from AntWeb. I want to make a cool interface to visualize 
 myPath <- "~/GitHub/antweb"
 myPathToData <- paste(myPath,"data",sep="/")
 
+library(dplyr,warn.conflicts = FALSE,quietly = TRUE)
 library(geojsonio,warn.conflicts = FALSE,quietly = TRUE)
 ```
 
@@ -31,4 +32,44 @@ antData <- antData[is.na(antData$decimal_latitude)==FALSE & is.na(antData$decima
 ```{r csv file conversion}
 geo <- geojson_json(antData[1:2000,],lat = "decimal_latitude",lon = "decimal_longitude")
 geojson_write(input = geo,file = paste(myPathToData,"small_ants.geojson",sep="/"))
+```
+
+### Subsetting the geojson
+As it turns out, writing the ant points to a geojson is ENORMOUS, which I should have anticipated. If I'm going to use these geojson files to visualize the data, then I'm going to have to get more creative about it. Fundamentally, I want to examine the following:
+
+1.  What areas are ants most reported as occurring on AntWeb? 
+1.  Which parts of the globe are richest?
+1.  How does that change when richness normalized by reporting intensity?
+1.  Picking out just one species, where does that species occur?
+
+Eventually, I'd like to do the same at the genus and subfamily taxon-levels. To do any of this, though, I'm going to have to subset the data or synthesize them.
+```{r synthesized geojson}
+# Make a grid of the world
+lon <- seq(-179.5,179.5,1) # Possible longitude
+lat <- seq(-89.5,89.5,1) # Possible latitude
+size <- length(lon)*length(lat) # size of the df
+grid <- data.frame(lat=rep(lat,length(lon)),
+                   lon=sort(rep(lon,length(lat))),
+                   row.names = 1:size)
+
+# Filling the grid with ant data
+for (i in 1:size){
+  antData %>% 
+    filter(decimal_latitude>(grid$lat[i]-0.5),
+           decimal_latitude<(grid$lat[i]+0.5),
+           decimal_longitude>(grid$lon[i]-0.5),
+           decimal_longitude<(grid$lon[i]+0.5)) -> ants
+  grid$numRecords[i] <- dim(ants)[1]
+  ants <- unique.data.frame(ants[colnames(ants)=="subfamily"|
+                                   colnames(ants)=="genus"|
+                                   colnames(ants)=="scientific_name"])
+  grid$sppRichness[i] <- dim(ants)[1]
+  ants <- unique.data.frame(ants[colnames(ants)=="subfamily"|
+                                   colnames(ants)=="genus"])
+  grid$genRichness[i] <- dim(ants)[1]
+  ants <- unique.data.frame(ants[colnames(ants)=="subfamily"])
+  grid$subfamRichness[i] <- dim(ants)[1]
+  print((i/size)*100)
+}
+
 ```
