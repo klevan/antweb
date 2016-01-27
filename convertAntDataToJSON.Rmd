@@ -81,10 +81,10 @@ rm(ants)
 
 # Now that I have a grid, I can scale the occurence/diversity
 # raw numbers to make an attractive scalar for my character 
-grid$numRecords <- (grid$numRecords/max(grid$numRecords,na.rm = TRUE))*5
-grid$sppRichness <- (grid$sppRichness/max(grid$sppRichness,na.rm = TRUE))*5
-grid$genRichness <- (grid$genRichness/max(grid$genRichness,na.rm = TRUE))*5
-grid$subfamRichness <- (grid$subfamRichness/max(grid$subfamRichness,na.rm = TRUE))*5
+grid$numRecords <- (grid$numRecords/max(grid$numRecords,na.rm = TRUE))*20
+grid$sppRichness <- (grid$sppRichness/max(grid$sppRichness,na.rm = TRUE))*20
+grid$genRichness <- (grid$genRichness/max(grid$genRichness,na.rm = TRUE))*20
+grid$subfamRichness <- (grid$subfamRichness/max(grid$subfamRichness,na.rm = TRUE))*20
 ```
 
 Now that I have summary stats for each grid location, I can create .geojson files for grids at each of my resolutions of interest.
