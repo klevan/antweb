@@ -2,4 +2,3 @@ data/*.csv
 data/*.geojson
 makingPlots.Rmd
 *.Rhistory
-shiny_app/*
