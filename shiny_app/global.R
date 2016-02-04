@@ -5,7 +5,7 @@
 
 #antData <- antData[c("subfamily","genus","scientific_name","country","latitude","longitude")]
 
-grid <- read.csv("~/GitHub/antweb/data/grid.csv", stringsAsFactors=FALSE)
+grid <- read.csv("data/grid.csv", stringsAsFactors=FALSE)
 grid <- grid[is.na(grid$numRecords)==FALSE,]
 grid$latitude <- grid$lat
 grid$longitude <- grid$lon
